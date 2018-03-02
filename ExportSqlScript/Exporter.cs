@@ -1,18 +1,6 @@
-/* Copyright 2007 Ivan Hamilton.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+﻿using Microsoft.SqlServer.Management.Sdk.Sfc;
+using Microsoft.SqlServer.Management.Smo;
+using Microsoft.SqlServer.Management.Smo.Broker;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -21,56 +9,27 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.SqlServer.Management.Sdk.Sfc;
-using Microsoft.SqlServer.Management.Smo;
-using Microsoft.SqlServer.Management.Smo.Broker;
-using NOption;
 
-namespace ExportSQLScript
+namespace ExportSqlScript
 {
-    /// <summary>
-    /// Delegate for custom scripting methods for SmoObjects
-    /// </summary>
-    internal delegate StringCollection ScriptObjectDelegate(SqlSmoObject sqlSmoObject, Urn urn, ScriptingOptions scriptingOptions);
-
-    /// <summary>
-    /// Main program class
-    /// </summary>
-    internal class Program
+    public class Exporter
     {
-        /// <summary>Standard Output StreamWriter</summary>
-        private readonly StreamWriter stdout;
+        private readonly ILog logger;
 
-        /// <summary>Standard Error StreamWriter</summary>
-        private readonly StreamWriter stderr;
+        /// <summary>
+        /// The configuration
+        /// </summary>
+        private readonly Config config;
+
+        /// <summary>
+        /// Delegate for custom scripting methods for SmoObjects
+        /// </summary>
+        internal delegate StringCollection ScriptObjectDelegate(SqlSmoObject sqlSmoObject, Urn urn, ScriptingOptions scriptingOptions);
 
         /// <summary>Methods for custom scripted types</summary>
         readonly Dictionary<Type, ScriptObjectDelegate> CustomScriptMethods = new Dictionary<Type, ScriptObjectDelegate>();
 
         List<SqlSmoObject> independentObjectsLast = new List<SqlSmoObject>();
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Program"/> class.
-        /// </summary>
-        public Program()
-        {
-            stdout = new StreamWriter(Console.OpenStandardOutput());
-            stderr = new StreamWriter(Console.OpenStandardError());
-
-            CustomScriptMethods.Add(typeof(Database), ScriptDatabase);
-            CustomScriptMethods.Add(typeof(Table), ScriptTable);
-            CustomScriptMethods.Add(typeof(View), ScriptView);
-        }
-
-        /// <summary>
-        /// Releases unmanaged resources and performs other cleanup operations before the
-        /// <see cref="Program"/> is reclaimed by garbage collection.
-        /// </summary>
-        ~Program()
-        {
-            stdout.Close();
-            stderr.Close();
-        }
 
         /// <summary>Order of object creation</summary>
         private readonly StringCollection fileBuildOrder = new StringCollection();
@@ -80,34 +39,18 @@ namespace ExportSQLScript
         /// <summary>Server SMO object for scripting.</summary>
         private Server server;
 
-        /// <summary>Application configuration.</summary>
-        private readonly Config config = new Config();
-
-
-        /// <summary>
-        /// Static Main method for program execution.
-        /// </summary>
-        private static void Main()
+        public Exporter(ILog logger, Config config)
         {
-            Program program = new Program();
-            program.Run();
+            this.logger = logger;
+            this.config = config;
+
+            CustomScriptMethods.Add(typeof(Database), ScriptDatabase);
+            CustomScriptMethods.Add(typeof(Table), ScriptTable);
+            CustomScriptMethods.Add(typeof(View), ScriptView);
         }
 
-        /// <summary>
-        /// Instance main execution method
-        /// </summary>
-        private void Run()
+        public void Run()
         {
-            //Parse command line
-            OptionParser op = new OptionParser();
-            ParseForTypeResults parseResults = op.ParseForType(typeof(Config));
-            if (parseResults == null)
-            {
-                DisplayUsage();
-                return;
-            }
-            parseResults.Apply(config);
-
             //Create server and database connection
             server = new Server(config.server);
             Database db = server.Databases[config.database];
@@ -124,7 +67,7 @@ namespace ExportSQLScript
                 string Name = names[i];
                 if (Name != "All" && Array.IndexOf(config.excludeTypes.ToUpper().Split(','), Name.ToUpper()) == -1)
                 {
-                    writeStdError("Getting objects: " + Name);
+                    this.logger.Debug("Getting objects: " + Name);
                     dtList.Add(db.EnumObjects(values[i]));
                 }
             }
@@ -194,7 +137,7 @@ namespace ExportSQLScript
             {
                 //Get filename
                 string fileName = config.orderFilename;
-                writeStdError("Creating Order file: " + fileName);
+                this.logger.Debug("Creating Order file: " + fileName);
                 if (config.outputDirectory != null)
                     fileName = Path.Combine(config.outputDirectory, fileName);
 
@@ -231,7 +174,7 @@ namespace ExportSQLScript
                     foreach (var item in ResolvingDependenciesOn)
                         if (item.Urn != null)
                             circle = circle + NameFromUrn(item.Urn) + " > ";
-                    writeStdError("WARNING: Circular Reference (consider \"/sfks\"): " + circle + NameFromUrn(dependencyTreeNode.Urn));
+                    this.logger.Warning("WARNING: Circular Reference (consider \"/sfks\"): " + circle + NameFromUrn(dependencyTreeNode.Urn));
                 }
                 return;
             }
@@ -276,7 +219,7 @@ namespace ExportSQLScript
                     if (objServer == depServer && objDb == depDb)
                         ScriptDependencyTreeNode(DependencyTreeNodeChild.dependencyTreeNode);
                     else
-                        writeStdError(String.Format("Skipping external dependancy: [{1}].[{2}].[{3}]", depServer, depDb, depSchema, depName));
+                        this.logger.Debug(String.Format("Skipping external dependancy: [{1}].[{2}].[{3}]", depServer, depDb, depSchema, depName));
                 }
                 //Remove current object from "resolving dependencies" list
                 ResolvingDependenciesOn.Remove(dependencyTreeNode);
@@ -392,7 +335,7 @@ namespace ExportSQLScript
                 }
                 catch (MissingMethodException)
                 {
-                    writeStdError("Object doesn't provide Script method:" + urn.Type + ", " + sqlSmoObject);
+                    this.logger.Debug("Object doesn't provide Script method:" + urn.Type + ", " + sqlSmoObject);
                     return;
                 }
             //Clean if foreign key
@@ -412,7 +355,7 @@ namespace ExportSQLScript
         {
             String Name;
             if (sqlSmoObject is ForeignKey)
-                Name = ObjectName((sqlSmoObject as ForeignKey).Parent) +"."+ (sqlSmoObject as ForeignKey).ToString();
+                Name = ObjectName((sqlSmoObject as ForeignKey).Parent) + "." + (sqlSmoObject as ForeignKey).ToString();
             else if (!config.scriptSchemaQualify && sqlSmoObject is ScriptSchemaObjectBase)
                 Name = "[" + (sqlSmoObject as ScriptSchemaObjectBase).Name + "]";
             else
@@ -722,19 +665,25 @@ namespace ExportSQLScript
         /// <param name="objectScript">The object script.</param>
         private void writeScript(string objectType, string objectName, string objectScript)
         {
-            //Debug info
-            writeStdError(objectType + ": " + objectName);
+            this.logger.Debug(objectType + ": " + objectName);
 
-            //Do Std write
-            if (config.outputType == Config.OutputType.StdOut)
+            if (config.outputType == Config.OutputType.None)
             {
-                stdout.Write(objectScript);
-                stdout.Flush();
+                this.logger.Information(objectScript);
                 return;
             }
 
-            //Filename is objectname.sql
-            string fileName = cleanFilename(objectName) + ".sql";
+            string fileName;
+
+            if (config.outputType == Config.OutputType.SingleFile)
+            {
+                fileName = cleanFilename(config.objectName ?? config.database) + ".sql";
+            }
+            else
+            {
+                //Filename is objectname.sql
+                fileName = cleanFilename(objectName) + ".sql";
+            }
 
             //Add prefix directory or type name
             switch (config.outputType)
@@ -750,18 +699,36 @@ namespace ExportSQLScript
                     break;
             }
 
-            //Debug Info
-            writeStdError("Creating file: " + fileName);
-            //Add file to build order
-            fileBuildOrder.Add(fileName);
+            if (config.outputType != Config.OutputType.SingleFile)
+            {
+                //Add file to build order
+                fileBuildOrder.Add(fileName);
+            }
+
             //Add the output directory to filename
-            if (config.outputDirectory != null)
-                fileName = Path.Combine(config.outputDirectory, fileName);
+            if (string.IsNullOrEmpty(config.outputDirectory))
+            {
+                config.outputDirectory = Directory.GetCurrentDirectory();
+            }
+
+            fileName = Path.Combine(config.outputDirectory, fileName);
+
             //Make sure the directory exists (create it if necessary)
             string dirPath = Path.GetDirectoryName(fileName);
-            Directory.CreateDirectory(dirPath);
+
             //Create file and write script
-            StreamWriter sw = new StreamWriter(fileName);
+            if (!Directory.Exists(dirPath))
+            {
+                Directory.CreateDirectory(dirPath);
+            }
+
+            //Create file and write script
+            if (!File.Exists(fileName))
+            {
+                this.logger.Debug("Creating file: " + fileName);
+            }
+
+            StreamWriter sw = new StreamWriter(fileName, config.outputType == Config.OutputType.SingleFile);
             sw.Write(objectScript);
             sw.Close();
         }
@@ -793,53 +760,6 @@ namespace ExportSQLScript
             fileName = fileName.Trim('.');
 
             return fileName;
-        }
-
-        /// <summary>
-        /// Writes a line to standard error
-        /// </summary>
-        /// <param name="s">The string to write.</param>
-        private void writeStdError(string s)
-        {
-            stderr.WriteLine(s);
-            stderr.Flush();
-        }
-
-        /// <summary>
-        /// Displays the usage help text.
-        /// </summary>
-        private void DisplayUsage()
-        {
-            stdout.WriteLine(
-                @"Generates script(s) for SQL Server 2008 R2, 2008, 2005 & 2000 database objects
-
-" +
-                Path.GetFileNameWithoutExtension(Environment.GetCommandLineArgs()[0]).ToUpper() +
-                @" Server Database [Object] [/od:outdir]
-
-  Server Database [Object]
-                  Specifies server, database and database object to script.
-
-Output format:
-  /od:outdir      The output directory for generated files
-  /ot:outType     Arrangement of output from scripting. 
-                    File    A single file
-                    Files   One file per object (filename prefixed by type)
-                    Tree    One directory per object type (one file per object)
-  /of:ordFile     The dependency order filename
-
-Script Generation:
-  /sdb            Script database creation
-  /sc             Script collations
-  /sfg            Script file groups
-  /ssq            Script with schema qualifiers
-  /sep            Script extended properties
-  /sfks           Script foreign keys separate to table (resolves circular reference issue)
-
-Object Selection:
-  /xt:type[,type] Object types not to export
-");
-            stdout.Flush();
         }
     }
 }

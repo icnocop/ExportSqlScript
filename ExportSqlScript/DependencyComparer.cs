@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace ExportSQLScript
+namespace ExportSqlScript
 {
     /// <summary>
     /// Compares DtnSmo objects for creation order.

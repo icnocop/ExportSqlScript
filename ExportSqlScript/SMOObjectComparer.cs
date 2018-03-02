@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Microsoft.SqlServer.Management.Smo;
 
-namespace ExportSQLScript
+namespace ExportSqlScript
 {
     /// <summary>
     /// Compares SqlSmoObject objects for creation order.

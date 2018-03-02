@@ -1,1 +1,5 @@
-/.vs/ExportSqlScript/v14/*.suo
+*.suo
+*.user
+bin
+Debug
+Release

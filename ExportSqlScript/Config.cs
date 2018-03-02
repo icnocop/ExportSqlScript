@@ -1,17 +1,17 @@
 using System;
 using NOption;
 
-namespace ExportSQLScript
+namespace ExportSqlScript
 {
     /// <summary>
     /// Configuration class holding application config
     /// </summary>
-    internal class Config
+    public class Config
     {
         /// <summary>
         /// Order to script out objects with dependancies.
         /// </summary>
-        protected internal static string[] aDependentTypeOrder = {
+        public static string[] aDependentTypeOrder = {
             "UserDefinedFunction",
             "Table",
             "View",
@@ -37,14 +37,14 @@ namespace ExportSQLScript
         /// <summary>
         /// Objects to include "If Not Exists" in scripts.
         /// </summary>
-        protected internal static string[] aIfExistsObjectTypes = {
+        public static string[] aIfExistsObjectTypes = {
             "Role", "MessageType", "Schema", "ServiceContract", "ServiceQueue", "ServiceRoute", "User"
         };
 
         /// <summary>
         /// Schemas to exclude from scripting.
         /// </summary>
-        protected internal static string[] aExcludedSchemas = {"sys", "INFORMATION_SCHEMA"};
+        public static string[] aExcludedSchemas = {"sys", "INFORMATION_SCHEMA"};
 
         /// <summary>
         /// Objects that purport no dependancies, but actually do. So are exported last.
@@ -53,7 +53,7 @@ namespace ExportSQLScript
         /// <summary>
         /// SQL's own default Service Queues. No need to script them.
         /// </summary>
-        protected internal static string[] aDefaultServiceQueues = {
+        public static string[] aDefaultServiceQueues = {
             "[dbo].[EventNotificationErrorsQueue]",
             "[dbo].[QueryNotificationErrorsQueue]",
             "[dbo].[ServiceBrokerQueue]"
@@ -75,37 +75,66 @@ namespace ExportSQLScript
         /// </summary>
         public enum OutputType
         {
+            /// <summary>Do not output to a file</summary>
+            None,
+
             /// <summary>Single file for all objects</summary>
-            StdOut,
+            SingleFile,
+
             /// <summary>One file per object, name prefixed by type</summary>
             Files,
+
             /// <summary>One file per object, split into directories by type</summary>
             Tree
         }
 
         /// <summary>Output file layout</summary>
-        [KeyValueCommandLineOption("ot")] protected internal OutputType outputType = OutputType.StdOut;
+        [KeyValueCommandLineOption("ot")]
+        public OutputType outputType = OutputType.None;
 
-        [KeyValueCommandLineOption("od")] protected internal string outputDirectory = null;
-        [KeyValueCommandLineOption("of")] protected internal string orderFilename = "fileOrder.txt";
+        [KeyValueCommandLineOption("od")]
+        public string outputDirectory = null;
+
+        [KeyValueCommandLineOption("of")]
+        public string orderFilename = "fileOrder.txt";
 
         //Output script 
-        [FlagCommandLineOption("sdb")] protected internal bool scriptDatabase = false;
-        [FlagCommandLineOption("sc")] protected internal bool scriptCollation = false;
-        [FlagCommandLineOption("sfg")] protected internal bool scriptFileGroup = false;
-        [FlagCommandLineOption("ssq")] protected internal bool scriptSchemaQualify = false;
-        [FlagCommandLineOption("sep")] protected internal bool scriptExtendedProperties = false;
-        [FlagCommandLineOption("sfks")] protected internal bool scriptForeignKeysSeparately = false;
+        [FlagCommandLineOption("sdb")]
+        public bool scriptDatabase = false;
+
+        [FlagCommandLineOption("sc")]
+        public bool scriptCollation = false;
+
+        [FlagCommandLineOption("sfg")]
+        public bool scriptFileGroup = false;
+
+        [FlagCommandLineOption("ssq")]
+        public bool scriptSchemaQualify = false;
+
+        [FlagCommandLineOption("sep")]
+        public bool scriptExtendedProperties = false;
+
+        [FlagCommandLineOption("sfks")]
+        public bool scriptForeignKeysSeparately = false;
 
         //Object selection
-        [ArgumentCommandLineOption(1), RequiredCommandLineOption] protected internal String server = null;
-        [ArgumentCommandLineOption(2), RequiredCommandLineOption] protected internal String database = null;
-        [ArgumentCommandLineOption(3)] protected internal String objectName = null;
+        [ArgumentCommandLineOption(1), RequiredCommandLineOption]
+        public String server = null;
 
-        [KeyValueCommandLineOption("xt")] protected internal String excludeTypes = "";
+        [ArgumentCommandLineOption(2), RequiredCommandLineOption]
+        public String database = null;
+
+        [ArgumentCommandLineOption(3)]
+        public String objectName = null;
+
+        [KeyValueCommandLineOption("xt")]
+        public String excludeTypes = "";
 
         //Connection info
-        [KeyValueCommandLineOption("U")] protected internal String userName = null;
-        [KeyValueCommandLineOption("P")] protected internal String password = null;
+        [KeyValueCommandLineOption("U")]
+        protected internal String userName = null;
+
+        [KeyValueCommandLineOption("P")]
+        protected internal String password = null;
     }
 }

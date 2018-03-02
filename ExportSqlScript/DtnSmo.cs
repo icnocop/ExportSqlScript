@@ -1,6 +1,6 @@
 using Microsoft.SqlServer.Management.Smo;
 
-namespace ExportSQLScript
+namespace ExportSqlScript
 {
     /// <summary>
     /// Holds a DependencyTreeNode & NamedSmoObject association.
@@ -10,11 +10,11 @@ namespace ExportSQLScript
         /// <summary>
         /// The DependencyTreeNode
         /// </summary>
-        internal DependencyTreeNode dependencyTreeNode;
+        public DependencyTreeNode dependencyTreeNode;
 
         /// <summary>
         /// The NamedSmoObject
         /// </summary>
-        internal NamedSmoObject namedSmoObject;
+        public NamedSmoObject namedSmoObject;
     }
 }

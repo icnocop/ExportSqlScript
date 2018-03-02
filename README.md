@@ -1,59 +1,83 @@
 # Export SQL Script
 
-Command line driven utility to export MS SQL objects to script files suitable for database creation and revision control.
-Uses 2008R2 Server Management Objects (SMO) which are compatible with SQL Server 2000, SQL Server 2005, SQL Server 2008 and SQL Server 2008 R2.
+Exports the schema for a Microsoft SQL Server database to one or more SQL files.
 
-## Quick Start
-### Running the tool
-In a nutshell
-{{
-EXPORTSQLSCRIPT Server Database
-}}
-That'll script to StdOut by default. 
+# Command Line Usage
 
-Chances are, you'll want the file based tree: "/ot:Tree", dependency order info: "/of:_file_", a particular output directory: "/od:_outdir_" & schema info "/ssq"
-{{
-ExportSQLScript.exe localhost AdventureWorks /ot:Tree /of:CreationOrder.txt /od:"outdir" /ssq
-}}
+ExportSqlScript.Console.exe "Server" "Database" [Object] [[Options]]
 
-### Recreating the DB
-This tool only provides output scripts. But something simple like CMD.EXE can achieve this:
-{{
-C:\>sqlcmd -E -S localhost -Q "CREATE DATABASE MYDB"
+## Examples
 
-C:\>for /F "" %i in (CreationOrder.txt) do sqlcmd -E -S localhost -d MYDB -f 65001 -i %i
-}}
+##### Output the schema to the console
 
-You'll need to change "%i" to "%%i" for use inside a batch file.
-"-f 65001" tells SQLCMD to use UTF-8, otherwise extended characters may incorrectly translated.
+>ExportSqlScript.Console.exe .\sqlexpress AdventureWorks
 
-You may need the Microsoft® SQL Server® 2008 R2 Shared Management Objects:
-[ http://www.microsoft.com/downloads/en/details.aspx?displaylang=en&FamilyID=ceb4346f-657f-4d28-83f5-aae0c5c83d52]( http://www.microsoft.com/downloads/en/details.aspx?displaylang=en&FamilyID=ceb4346f-657f-4d28-83f5-aae0c5c83d52)
+##### Save the schema to a single file
 
-## Why?
-I had two needs:
-# Turn a database into a set of scripts able to create the database
-# Turn a database into a set of scripts suitable to version control
+>ExportSqlScript.Console.exe .\sqlexpress AdventureWorks /ot:SingleFile
 
-**The dependency problem**
-If you create all objects within a single file:
-* You can include them in dependency order.
-* If you modify a dependency the whole file changes drastically, confusing diff tools
-If you create all objects in separate files:
-* You can include them in dependency file in order.
-* If you modify a dependency a small section of the dependency file changes, NOT confusing diff tools
+*The file will be generated in the current directory with the name AdventureWorks.sql*
 
-**SQL Server Management Studio**
-SQL Server Management Studio's "Generate SQL Server Scripts Wizard" appeared to be the right tool for the job but:
-* After fulfilling dependencies, objects were created in no particular order (could change between DB instances)
-* Some export options didn't function at all
-* Doesn't lend itself to automation
+##### Save the schema to individual files by type
 
-## An Answer
-A command line tool for exporting schema objects from SQL databases.
-Creates one file in creation order, or mutiple files including a creation order file.
-A work in progress, but useful enough to share.
+>ExportSqlScript.Console.exe .\sqlexpress AdventureWorks /ot:Files /of:CreationOrder.txt /od:"sql"
 
-## Credits
+##### Save the schema to individual files by type and in a hierarchy of directories by object type
+
+>ExportSqlScript.Console.exe .\sqlexpress AdventureWorks /ot:Tree /of:CreationOrder.txt /od:"sql"
+
+## Options
+
+| Parameter             | Description         |  Required | Values                     | Default Value |
+|-----------------------|---------------------|-----------|-----------------|---------------|
+| Server                | The server address. | **True** | | |
+| Database              | The name of the database. | **True** | | |
+| [Object]              | The name of the object to generate. If this parameter isn't specified, then all objects are included by default. | False | | |
+| /ot:"OutputType"      | The type of output to generate. | False | None \| SingleFile \| Files \| Tree | None |
+| /of:"OrderFile"       | The name of the file generated in the output directory which lists the SQL files in the appropriate order needed to satisfy any dependencies when re-creating the database. | False | | fileOrder.txt |
+| /od:"OutputDirectory" | The output directory where the SQL files will be generated. | False | | The current directory |
+| /xt:"ExcludeTypes"    | A list of types to exclude separated by a comma. | False | *Run the command with the default parameters to get a list of all available object types in the database.* | |
+| /U:"UserName"         | The user name to connect to the database. | False | | |
+| /P:"UserPassword"     | The password to connect to the database. | False | | |
+
+| Flag  | Description                    |
+|-------|--------------------------------|
+| /sdb  | Script database                |
+| /sc   | Script collation               |
+| /sfg  | Script file group              |
+| /ssq  | Script schema qualify          |
+| /sep  | Script extended properties     |
+| /sfks | Script foreign keys separately |
+
+# Re-create the database
+
+1. Create the database
+
+>sqlcmd -E -S .\sqlexpress -Q "CREATE DATABASE AdventureWorks2"
+
+2. Execute the SQL files
+
+*When multiple files were generating:*
+>for /F "" %i in (CreationOrder.txt) do sqlcmd -E -S .\sqlexpress -d AdventureWorks2 -f 65001 -i %i
+
+*When a single file was generated:*
+>sqlcmd -E -S .\sqlexpress -d AdventureWorks2 -f 65001 -i AdventureWorks2.sql
+
+# Compatibility
+
+- SQL Server 2000
+- SQL Server 2005
+- SQL Server 2008
+- SQL Server 2008 R2
+- SQL Server 2012
+- SQL Server 2014
+- SQL Server 2016
+- SQL Server 2017
+
+# Requirements
+
+[Microsoft® SQL Server® 2008 R2 Shared Management Objects]( http://www.microsoft.com/downloads/en/details.aspx?displaylang=en&FamilyID=ceb4346f-657f-4d28-83f5-aae0c5c83d52)
+
+# Credits
 
 Ivan Hamilton's original source code from [codeplex](https://archive.codeplex.com/?p=exportsqlscript)

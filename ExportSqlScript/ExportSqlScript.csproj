@@ -6,7 +6,7 @@
     <ProductVersion>8.0.50727</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{98C614B3-A6D7-4AB9-802D-A92CBA21606E}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ExportSqlScript</RootNamespace>
     <AssemblyName>ExportSqlScript</AssemblyName>
@@ -39,9 +39,9 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\bin\ExportSqlScript\Debug\</OutputPath>
-    <IntermediateOutputPath>..\..\obj\Debug\</IntermediateOutputPath>
-    <BaseIntermediateOutputPath>..\..\obj\Debug\</BaseIntermediateOutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
+    <IntermediateOutputPath>obj\Debug\</IntermediateOutputPath>
+    <BaseIntermediateOutputPath>obj\Debug\</BaseIntermediateOutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -50,13 +50,16 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\..\bin\ExportSqlScript\Release\</OutputPath>
-    <IntermediateOutputPath>..\..\obj\Release\</IntermediateOutputPath>
-    <BaseIntermediateOutputPath>..\..\obj\Release\</BaseIntermediateOutputPath>
+    <OutputPath>bin\Release\</OutputPath>
+    <IntermediateOutputPath>obj\Release\</IntermediateOutputPath>
+    <BaseIntermediateOutputPath>obj\Release\</BaseIntermediateOutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=10.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL" />
@@ -71,8 +74,9 @@
     <Compile Include="Config.cs" />
     <Compile Include="DependencyComparer.cs" />
     <Compile Include="DtnSmo.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="ILog.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Exporter.cs" />
     <Compile Include="SMOObjectComparer.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -94,7 +98,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NOption\NOption.csproj">
-      <Project>{CE8E411C-1F97-49E0-B23B-D0F11C0233FC}</Project>
+      <Project>{ce8e411c-1f97-49e0-b23b-d0f11c0233fc}</Project>
       <Name>NOption</Name>
     </ProjectReference>
   </ItemGroup>
