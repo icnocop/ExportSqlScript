@@ -1,5 +1,7 @@
+.vs
 *.suo
 *.user
 bin
 Debug
 Release
+packages
